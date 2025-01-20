@@ -17,6 +17,9 @@
 ## Download
 Click here to download the latest version for Windows: [SpectroIBIS v1.0.0 (ZIP)](https://github.com/bbulcock/SpectroIBIS/releases/download/v1.0.0/SpectroIBIS.zip)
 
+## Installation
+Unzip the above ZIP file, then double-click on ‘SpectroIBIS.exe’ to launch.
+
 ## Usage
 **Processing of output files for NMR chemical shift predictions:**
 ![nmr_analysis](images/nmr_processing.gif)
