@@ -19,13 +19,13 @@ Click here to download the latest version for Windows: [SpectroIBIS v1.0.0 (ZIP)
 
 ## Usage
 **Processing of output files for NMR chemical shift predictions:**
-![nmr_analysis](https://github.com/user-attachments/assets/cf350d9d-777d-4ae7-b14d-dc91a0864bb0)
+![nmr_analysis](images/nmr_processing.gif)
 
 **Creation of input files from XYZ files:**
-![xyz](https://github.com/user-attachments/assets/9a650012-52f5-4449-b127-2cf5b8c81667)
+![xyz](images/xyz_to_input.gif)
 
 **Creation of input files from output files, excluding conformers with relative energies above 10 kJ/mol:**
-![input_energy_cutoff](https://github.com/user-attachments/assets/b5b7a8f7-6eb8-44f0-ac57-406108a3325e)
+![input_energy_cutoff](images/input_energy_cutoff.gif)
 
 ## Need help?
 Check out the included [User Manual](https://github.com/bbulcock/SpectroIBIS/releases/download/v1.0.0/SpectroIBIS_Manual.pdf), submit a question in the [Issues](https://github.com/bbulcock/SpectroIBIS/issues) section or send me an [Email](mailto:spectroibis@gmail.com).
