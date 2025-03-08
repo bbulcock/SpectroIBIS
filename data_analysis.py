@@ -4,9 +4,9 @@
 
 
 from math import exp
-from rdkit.Chem import MolFromXYZBlock, rdMolTransforms
-import numpy as np
-from scipy.optimize import linear_sum_assignment
+from rdkit.Chem import MolFromXYZBlock, rdMolTransforms  # Version 2022.9.4
+import numpy as np  # Version 1.24.1
+from scipy.optimize import linear_sum_assignment  # Version 1.14.1
 from scipy.spatial import distance as scipy_distance
 
 
