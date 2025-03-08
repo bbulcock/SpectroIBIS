@@ -36,7 +36,7 @@ from tkinter import (
     Frame,
 )
 from webbrowser import open_new
-from tkinterdnd2 import DND_FILES, TkinterDnD
+from tkinterdnd2 import DND_FILES, TkinterDnD  # Version 0.3.0
 from data_analysis import analyse
 from parsers import parse, xyz_sdf_parser
 from writers import (
@@ -986,7 +986,7 @@ def open_about_window():
     label0.grid(row=0, column=0)
     label00 = Label(label_frame, text="IBIS", font=("Colonna MT", 36, "bold"))
     label00.grid(row=0, column=1)
-    label1 = Label(window, text="Version 1.0.0", font=("Arial", 14))
+    label1 = Label(window, text="Version 1.0.1", font=("Arial", 14))
     label1.pack()
     label2 = Label(
         window, text="https://github.com/bbulcock/SpectroIBIS", font=("Arial", 10), fg="blue", cursor="hand2"
@@ -999,9 +999,13 @@ def open_about_window():
     label2.bind("<Button-1>", lambda e: open_new("https://github.com/bbulcock/SpectroIBIS"))
     label3 = Label(window, text="Developed by Brodie Bulcock", font=("Arial", 10))
     label3.pack()
-    label4 = Label(window, text="\nIf you found this tool useful, please cite:\n(Publication coming soon!)",
+    label4 = Label(window, text="\nIf you found this tool useful, please cite:",
                    font=("Arial", 10))
     label4.pack()
+    label5 = Label(window, text="J. Nat. Prod. 2025, 88, 2, 495–501",
+                   font=("Arial", 10), fg="blue", cursor="hand2")
+    label5.pack()
+    label5.bind("<Button-1>", lambda e: open_new("https://doi.org/10.1021/acs.jnatprod.4c01321"))
 
 
 def output_window():
