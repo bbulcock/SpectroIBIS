@@ -4,7 +4,7 @@
 
 from csv import writer as csv_writer, QUOTE_ALL
 from re import search, findall, sub
-from docx import Document
+from docx import Document  # Version 0.8.11
 from docx.shared import Pt
 from docx.enum.text import WD_PARAGRAPH_ALIGNMENT
 from docx.enum.table import WD_CELL_VERTICAL_ALIGNMENT, WD_TABLE_ALIGNMENT
