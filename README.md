@@ -17,7 +17,7 @@
 + Simple drag-and-drop user interface, no programming experience required
 
 ## Download
-Click here to download the latest version for Windows: [SpectroIBIS v1.0.0 (ZIP)](https://github.com/bbulcock/SpectroIBIS/releases/download/v1.0.0/SpectroIBIS.zip)
+Click here to download the latest version for Windows: [SpectroIBIS v1.0.1 (ZIP)](https://github.com/bbulcock/SpectroIBIS/releases/download/v1.0.1/SpectroIBIS.zip)
 
 ## Installation
 Unzip the above ZIP file, then double-click on ‘SpectroIBIS.exe’ to launch.
@@ -33,4 +33,4 @@ Unzip the above ZIP file, then double-click on ‘SpectroIBIS.exe’ to launch.
 ![input_energy_cutoff](images/input_energy_cutoff.gif)
 
 ## Need help?
-Check out the included [User Manual](https://github.com/bbulcock/SpectroIBIS/releases/download/v1.0.0/SpectroIBIS_Manual.pdf), submit a question in the [Issues](https://github.com/bbulcock/SpectroIBIS/issues) section or send me an [Email](mailto:spectroibis@gmail.com).
+Check out the included [User Manual](https://github.com/bbulcock/SpectroIBIS/releases/download/v1.0.1/SpectroIBIS_Manual.pdf), submit a question in the [Issues](https://github.com/bbulcock/SpectroIBIS/issues) section or send me an [Email](mailto:spectroibis@gmail.com).
