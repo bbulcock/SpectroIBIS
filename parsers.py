@@ -3,9 +3,9 @@
 
 
 from re import search, findall, sub, IGNORECASE, DOTALL, MULTILINE
-from rdkit.Chem import MolFromXYZBlock, rdMolTransforms
-import numpy as np
-from scipy.optimize import linear_sum_assignment
+from rdkit.Chem import MolFromXYZBlock, rdMolTransforms  # Version 2022.9.4
+import numpy as np  # Version 1.24.1
+from scipy.optimize import linear_sum_assignment  # Version 1.14.1
 from scipy.spatial import distance as scipy_distance
 
 
@@ -80,7 +80,7 @@ def parse(list_of_filepaths, settings):
     gaussian_opt_calc_details_regex = r"---\n( #\w? .{0,200}opt(.){0,200})\n ---"
     gaussian_nmr_calc_details_regex = r"---\n( #\w? .{0,200}NMR(.){0,200})\n ---"
     gaussian_or_calc_details_regex = r"---\n( #\w? .{0,200}Polar=OptRot(.){0,200})\n ---"
-    gaussian_tddft_calc_details_regex = r"---\n( #\w? .{0,200}td\(nstates?=(.){0,200})\n ---"
+    gaussian_tddft_calc_details_regex = r"---\n( #\w? .{0,200}td=?\(nstates?=(.){0,200})\n ---"
     gaussian_coords_block_regex = r"1\\1\\GINC-\S*\\FOpt\\.*?\\\\@"
     gaussian_coords_regex = r"\\([A-Z][a-z]?),(-?\d+.\d+),(-?\d+.\d+),(-?\d+.\d+)"
     gaussian_gibbs_free_energies_regex = r"Sum of electronic and thermal Free Energies=\s*(-[0-9]+\.[0-9]+).*"
@@ -93,7 +93,7 @@ def parse(list_of_filepaths, settings):
     gaussian_nmr_regex = r" Calculating GIAO nuclear magnetic shielding tensors\..[^*]*\*\*\*\*\*\*\*\*\*\*"
     gaussian_shielding_tensors_regex = r".*Isotropic =\s*(-?[0-9]+\.[0-9]+).*"
     gaussian_ecd_regex = (
-        r" R\(length\).*? SavETr:  write IOETrn=   \d+ NScale= \d+ NData=  \d+ NLR=1 NState=   \d+ LETran=     \d+\."
+        r" R\(length\).*? SavETr:  write IOETrn=   \d+ NScale= \d+ NData=  \d+ NLR=1 "
     )
     gaussian_rotatory_strength_regex = r" +\d+ +-?\d+\.\d+ +-?\d+\.\d+ +-?\d+\.\d+ +(-?\d+\.\d+)\n"
     gaussian_optrot_section_regex = r"\[Alpha\] \( \d+\.\d+ A\) = +-?\d+\.\d+ deg\..[^*]*\*\*\*\*\*\*\*\*\*\*"
