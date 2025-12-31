@@ -1,4 +1,4 @@
-# Script used to create executable binary file, using the Pyinstaller package (5.13.0)
+# Script used to create executable binary file, using the Pyinstaller package (6.17.0)
 # Tip: hook-tkinterdnd2.py and hook-scipy.py must be in a folder named 'hook'.
 
 import PyInstaller.__main__
