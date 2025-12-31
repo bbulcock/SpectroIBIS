@@ -16,7 +16,7 @@
 
 import sys
 from os import path as os_path, system as os_system
-from re import search, findall, sub, DOTALL
+from re import search, findall, sub, IGNORECASE, DOTALL
 from tkinter import (
     Menu,
     Toplevel,
@@ -36,7 +36,7 @@ from tkinter import (
     Frame,
 )
 from webbrowser import open_new
-from tkinterdnd2 import DND_FILES, TkinterDnD  # Version 0.3.0
+from tkinterdnd2 import DND_FILES, TkinterDnD  # Version 0.4.3
 from data_analysis import analyse
 from parsers import parse, xyz_sdf_parser
 from writers import (
@@ -111,7 +111,8 @@ def imag_freq_error_window(settings, list_of_filenames, error_message, imag_freq
     for filename in list_of_filenames:
         conformer_suffix = search(
             "conf-\d+\.log|conformer-\d+\.log|M\d\d\d\d\.log|conf-\d+\.out|conformer-\d+\.out|M\d\d\d\d\.out",
-            filename
+            filename,
+            IGNORECASE
         )
         if conformer_suffix != None:
             conformer_suffix = conformer_suffix[0]
@@ -189,7 +190,12 @@ def main(list_of_filenames):
         )
         # Create suggested filename
 
-        suggested_filename = sub(r"-?_?conf-\d+|-?_?conformer-\d+|-?_?M\d\d\d\d", r"", suggested_filename)
+        suggested_filename = sub(
+            r"-?_?conf-\d+|-?_?conformer-\d+|-?_?M\d\d\d\d",
+            r"",
+            suggested_filename,
+            IGNORECASE
+        )
         suggested_filename = suggested_filename.removesuffix(" Geometries and Energies")
 
         if settings["Check for dup confs in XYZ/SDF files"] is True:
@@ -342,6 +348,7 @@ def main(list_of_filenames):
             r"+\.out|-?_?M\d\d\d\d\.out|\.out",
             r"",
             first_file_name,
+            IGNORECASE
         )
         # Create suggested filename
         if len(list_of_filenames) > 1:
@@ -570,7 +577,7 @@ def main(list_of_filenames):
                 status_bar2.config(text=status_text2)
                 root.update()
             elif not duplicate_conformers:
-                status_text2 = "No redundant conformers detected." # TODO Below x kj/mol?
+                status_text2 = "No redundant conformers detected."
                 status_bar2.config(text=status_text2)
                 root.update()
             return
@@ -986,7 +993,7 @@ def open_about_window():
     label0.grid(row=0, column=0)
     label00 = Label(label_frame, text="IBIS", font=("Colonna MT", 36, "bold"))
     label00.grid(row=0, column=1)
-    label1 = Label(window, text="Version 1.0.1", font=("Arial", 14))
+    label1 = Label(window, text="Version 1.1.0", font=("Arial", 14))
     label1.pack()
     label2 = Label(
         window, text="https://github.com/bbulcock/SpectroIBIS", font=("Arial", 10), fg="blue", cursor="hand2"
@@ -1311,7 +1318,7 @@ def energy_temperature_window():
     radiobutton2.grid(row=1, column=1, sticky="w")
     space1 = Label(window, text="")
     space1.pack()
-    label1 = Label(window, text="Temperature (K) for Boltzmann-weighting")
+    label1 = Label(window, text="Temperature (K) for Boltzmann weighting")
     label1.pack()
     entry1 = Entry(window, justify="center")
     entry1.insert(END, settings["Temperature (K)"])
