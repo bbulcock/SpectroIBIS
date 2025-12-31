@@ -3,9 +3,9 @@
 
 
 from re import search, findall, sub, IGNORECASE, DOTALL, MULTILINE
-from rdkit.Chem import MolFromXYZBlock, rdMolTransforms  # Version 2022.9.4
-import numpy as np  # Version 1.24.1
-from scipy.optimize import linear_sum_assignment  # Version 1.14.1
+from rdkit.Chem import MolFromXYZBlock, rdMolTransforms  # Version 2025.9.3
+import numpy as np  # Version 2.2.6
+from scipy.optimize import linear_sum_assignment  # Version 1.15.3
 from scipy.spatial import distance as scipy_distance
 
 
@@ -71,6 +71,7 @@ def parse(list_of_filepaths, settings):
     e = ""
     imaginary_freq_confs_text = ""
     are_there_files_without_conf_suffix = ""
+    calc_software = ""
     # Define regex patterns
 
     gaussian_calc_details_functional_and_basis_set_regex = r"\S+/\S+"
@@ -81,8 +82,8 @@ def parse(list_of_filepaths, settings):
     gaussian_nmr_calc_details_regex = r"---\n( #\w? .{0,200}NMR(.){0,200})\n ---"
     gaussian_or_calc_details_regex = r"---\n( #\w? .{0,200}Polar=OptRot(.){0,200})\n ---"
     gaussian_tddft_calc_details_regex = r"---\n( #\w? .{0,200}td=?\(nstates?=(.){0,200})\n ---"
-    gaussian_coords_block_regex = r"1\\1\\GINC-\S*\\FOpt\\.*?\\\\@"
-    gaussian_coords_regex = r"\\([A-Z][a-z]?),(-?\d+.\d+),(-?\d+.\d+),(-?\d+.\d+)"
+    gaussian_coords_block_regex = r"1\\1\\\S*\\FOpt\\.*?\\\\@|1\|1\|\S*\|FOpt\|.*?\|\|@"
+    gaussian_coords_regex = r"([A-Z][a-z]?),(-?\d+.\d+),(-?\d+.\d+),(-?\d+.\d+)"
     gaussian_gibbs_free_energies_regex = r"Sum of electronic and thermal Free Energies=\s*(-[0-9]+\.[0-9]+).*"
     gaussian_sp_energies_regex = r"=(-\d+\.\d+)\\RMSD=\d\.\d+e"
     gaussian_freq_section_regex = r"Frequencies --.*?- Thermochemistry -"
@@ -109,26 +110,32 @@ def parse(list_of_filepaths, settings):
     orca_calc_details_functional_and_basis_set_regex = r"^ *(\S+ +\S+)"
     orca_calc_details_solvent_regex = r"CPCMC?\((\w+-*\w*)\)"
     orca_calc_details_dispersion_regex = r"D4|D3BJ|D3ZERO|D2|NL|SCNL"
-    orca_calc_details_regex = r"(\n\| *\d+> !.[^*]*>) \*"
-    orca_sp_calc_details_regex = r"(\n\| *\d+> !.[^*]*( SP | energy ).[^*]*>) (\*)"
-    orca_opt_calc_details_regex = r"(\n\| *\d+> !.[^*]*Opt.[^*]*>) (\*)"
-    orca_nmr_calc_details_regex = r"(\n\| *\d+> !.[^*]*NMR.[^*]*>) (\*)"
-    orca_or_calc_details_regex = r""  # optical rotation not available in ORCA 5
-    orca_tddft_calc_details_regex = r"(\n\| *\d+> !.[^*]*%TDDFT.[^*]*>) (\*)"
+    orca_calc_details_regex = r"(\n\| *\d+> +!.[^*]*>) +\*"
+    orca_sp_calc_details_regex = r"(\n\| *\d+> +!.[^*]*( SP | energy ).[^*]*>) +(\*)"
+    orca_opt_calc_details_regex = r"(\n\| *\d+> +!.[^*]*Opt.[^*]*>) +(\*)"
+    orca_nmr_calc_details_regex = r"(\n\| *\d+> +!.[^*]*NMR.[^*]*>) +(\*)"
+    orca_or_calc_details_regex = r""  # optical rotation not available in ORCA 6
+    orca_tddft_calc_details_regex = r"(\n\| *\d+> +!.[^*]*%TDDFT.[^*]*>) +(\*)"
     orca_sp_energies_regex = r"----\nFINAL SINGLE POINT ENERGY +(-\d+\.\d+)"
     orca_freq_section_regex = r"VIBRATIONAL FREQUENCIES\n------.*?NORMAL MODES\n---"
     orca_frequencies_regex = r" *\d+: *(-?\d+\.\d+) cm\*\*-1"
     orca_ir_section_regex = r"IR SPECTRUM\n------.*?---\nTHERMOCHEMISTRY AT"
+    orca_ir_blocks_regex = (
+        r"\n *\d+: +\d+\.\d+ +\d+\.\d+ +(\d+\.\d+) +\d+\.\d+ +\(-? ?\d+\.\d+ +-?\d+\.\d+ +-?\d+\.\d+\)"
+    )
     orca_ir_intensities_regex = r" *\d+: *(-?\d+\.\d+) km/mol"
-    orca_frequency_rotatory_strengths_regex = r""  # VCD not available in ORCA 5
-    orca_frequency_dipole_strengths_regex = r""  # VCD not available in ORCA 5
+    orca_vcd_section_regex = r"VCD SPECTRUM CALCULATION\n------.*?Maximum memory used throughout the entire "
+    orca_frequency_rotatory_strengths_regex = r"\n *\d+ +\d+\.\d+ +(-?\d+\.\d+)"
+    orca_frequency_extinction_coefficients_regex = (
+        r"\n *\d+: +\d+\.\d+ +(\d+\.\d+) +\d+\.\d+ +\d+\.\d+ +\(-? ?\d+\.\d+ +-?\d+\.\d+ +-?\d+\.\d+\)"
+    )
     orca_coords_block_regex = (
         r"\*\*\* FINAL ENERGY EVALUATION AT THE STATIONARY POINT \*\*\*.*?CARTESIAN COORDINATES \(A\.U\.\)"
     )
     orca_coords_regex = r"([A-Z][a-z]?)\s+(-?\d+.\d+)\s+(-?\d+.\d+)\s+(-?\d+.\d+)"
     orca_gibbs_free_energies_regex = r"\nFinal Gibbs free energy *\.\.\. *(-\d+\.\d+) Eh"
     orca_nmr_regex = (
-        r"CHEMICAL SHIELDING SUMMARY \(ppm\).*?Maximum memory used throughout the entire EPRNMR-calculation: "
+        r"CHEMICAL SHIELDING SUMMARY \(ppm\).*?NMR"
     )
     orca_shielding_tensors_regex = r"\n\s+\d+\s+\w+\s+(-?\d+\.\d+)+"
     orca_ecd_regex = r"CD SPECTRUM\n-------------------.*?\n\n"
@@ -137,8 +144,8 @@ def parse(list_of_filepaths, settings):
         r"\n\s+\d+\s+\d+\.\d+\s+\d+\.\d+\s+(-?\d+\.\d+)\s+-?\d+\.\d+\s+-?\d+\.\d+\s+-?\d+\.\d+\s+-?\d+\.\d+"
     )
     orca_wavelength_regex = r"\n\s+\d+\s+-?\d+\.\d+\s+(\d+\.\d+)"
-    orca_optrot_regex = r""  # optical rotation not available in ORCA 5
-    orca_optrot_section_regex = r""  # optical rotation not available in ORCA 5
+    orca_optrot_regex = r""  # optical rotation not available in ORCA 6.1
+    orca_optrot_section_regex = r""  # optical rotation not available in ORCA 6.1
     orca_Gibbs_corrections_regex = r"\nG-E\(el\) +\.\.\. *(\d+\.\d+) Eh"
 
     # Set default value for error status
@@ -203,7 +210,8 @@ def parse(list_of_filepaths, settings):
 
                 conformer_suffix = search(
                     "conf-\d+\.log|conformer-\d+\.log|M\d\d\d\d\.log|conf-\d+\.out|conformer-\d+\.out|M\d\d\d\d\.out",
-                    filename
+                    filename,
+                    IGNORECASE
                 )
                 if conformer_suffix is not None:
                     conformer_suffix = conformer_suffix[0]
@@ -236,6 +244,7 @@ def parse(list_of_filepaths, settings):
                 "(conf-\d+)\.log|(conformer-\d+)\.log|(M\d\d\d\d)\.log|(conf-\d+)\.out|(conformer-\d+)\.out|("
                 "M\d\d\d\d)\.out",
                 conformer[0],
+                IGNORECASE
             )
             if conformer_suffix is not None:
                 list_of_conformer_suffixes.append(conformer_suffix[0])
@@ -246,12 +255,13 @@ def parse(list_of_filepaths, settings):
         elif isinstance(conformer, str):
             with open(conformer) as file:
                 data = file.read()
-        # Distinguish if files are Gaussian or 0rca, then assign relevant regex patterns.
+        # Distinguish if files are Gaussian or 0RCA, then assign relevant regex patterns.
 
         gaussian = False
         orca = False
         if search(r"\* O   R   C   A \*", data) is not None:
             orca = True
+            calc_software = "orca"
             calc_details_functional_and_basis_set_regex = orca_calc_details_functional_and_basis_set_regex
             calc_details_solvent_regex = orca_calc_details_solvent_regex
             calc_details_dispersion_regex = orca_calc_details_dispersion_regex
@@ -268,7 +278,11 @@ def parse(list_of_filepaths, settings):
             frequencies_regex = orca_frequencies_regex
             ir_intensities_regex = orca_ir_intensities_regex
             frequency_rotatory_strengths_regex = orca_frequency_rotatory_strengths_regex
-            frequency_dipole_strengths_regex = orca_frequency_dipole_strengths_regex
+            frequency_dipole_strengths_regex = orca_frequency_extinction_coefficients_regex
+            # Note that while Gaussian computes IR dipole strengths, ORCA 6 actually computes IR extinction
+            # coefficients, NOT dipole strengths. This difference is accounted for by SpectroIBIS later in the final
+            # .ir.bil and .docx files.
+
             nmr_regex = orca_nmr_regex
             shielding_tensors_regex = orca_shielding_tensors_regex
             ecd_regex = orca_ecd_regex
@@ -280,6 +294,7 @@ def parse(list_of_filepaths, settings):
             Gibbs_corrections_regex = orca_Gibbs_corrections_regex
         elif search(r"Gaussian, Inc\.  All Rights Reserved\.", data) is not None:
             gaussian = True
+            calc_software = "gaussian"
             calc_details_functional_and_basis_set_regex = gaussian_calc_details_functional_and_basis_set_regex
             calc_details_solvent_regex = gaussian_calc_details_solvent_regex
             calc_details_dispersion_regex = gaussian_calc_details_dispersion_regex
@@ -307,42 +322,96 @@ def parse(list_of_filepaths, settings):
             optrot_regex = gaussian_optrot_regex
             Gibbs_corrections_regex = gaussian_Gibbs_corrections_regex
         else:
-            parser_error_check = "Error detected"
-            error_message = (
-                "Could not recognise contents of output file(s).\nCheck file contents are standard for "
-                "Gaussian/ORCA output files. "
-            )
-            return (
-                "",
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-                parser_error_check,
-                0,
-                error_message,
-            )
+            # Some ORCA 6 output files use UTF-16 encoding - will now try opening with this
+            if isinstance(conformer, list):
+                for file in conformer:
+                    with open(file, encoding="utf-16") as file:
+                        text = file.read()
+                        data += text
+                # Record conformer suffix numbers
+
+                conformer_suffix = search(
+                    "(conf-\d+)\.log|(conformer-\d+)\.log|(M\d\d\d\d)\.log|(conf-\d+)\.out|(conformer-\d+)\.out|("
+                    "M\d\d\d\d)\.out",
+                    conformer[0],
+                    IGNORECASE
+                )
+                if conformer_suffix is not None:
+                    list_of_conformer_suffixes.append(conformer_suffix[0])
+                elif conformer_suffix is None and len(list_of_filepaths_by_conformer) == 1:
+                    for directory in conformer:
+                        name = directory.split("/")[-1]
+                        list_of_conformer_suffixes.append(name)
+            elif isinstance(conformer, str):
+                with open(conformer, encoding="utf-16") as file:
+                    data = file.read()
+
+            if search(r"\* O   R   C   A \*", data) is not None:
+                orca = True
+                calc_software = "orca"
+                calc_details_functional_and_basis_set_regex = orca_calc_details_functional_and_basis_set_regex
+                calc_details_solvent_regex = orca_calc_details_solvent_regex
+                calc_details_dispersion_regex = orca_calc_details_dispersion_regex
+                sp_calc_details_regex = orca_sp_calc_details_regex
+                opt_calc_details_regex = orca_opt_calc_details_regex
+                nmr_calc_details_regex = orca_nmr_calc_details_regex
+                or_calc_details_regex = orca_or_calc_details_regex
+                tddft_calc_details_regex = orca_tddft_calc_details_regex
+                coords_block_regex = orca_coords_block_regex
+                coords_regex = orca_coords_regex
+                gibbs_free_energies_regex = orca_gibbs_free_energies_regex
+                sp_energies_regex = orca_sp_energies_regex
+                freq_section_regex = orca_freq_section_regex
+                frequencies_regex = orca_frequencies_regex
+                ir_intensities_regex = orca_ir_intensities_regex
+                frequency_rotatory_strengths_regex = orca_frequency_rotatory_strengths_regex
+                frequency_dipole_strengths_regex = orca_frequency_extinction_coefficients_regex
+                nmr_regex = orca_nmr_regex
+                shielding_tensors_regex = orca_shielding_tensors_regex
+                ecd_regex = orca_ecd_regex
+                rotatory_strength_regex = orca_rotatory_strength_regex
+                oscillator_strength_regex = orca_oscillator_strength_regex
+                wavelength_regex = orca_wavelength_regex
+                optrot_section_regex = orca_optrot_section_regex
+                optrot_regex = orca_optrot_regex
+                Gibbs_corrections_regex = orca_Gibbs_corrections_regex
+            else:  # Could not recognise output file
+                parser_error_check = "Error detected"
+                error_message = (
+                    "Could not recognise contents of output file(s).\nCheck file contents are standard for "
+                    "Gaussian/ORCA output files. "
+                )
+                return (
+                    "",
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    parser_error_check,
+                    0,
+                    error_message,
+                )
         # Check if dedicated single-point energy calcs are present, extract theory level and energies
 
         sp_calc_details = findall(sp_calc_details_regex, data, IGNORECASE | DOTALL)
@@ -352,9 +421,10 @@ def parse(list_of_filepaths, settings):
             if orca:
                 for i in sp_calc_details:
                     unwanted_name = findall(r"%base \".*\"", i[0])
-                    x = i[0].replace(unwanted_name[0], "")
-                    if ' sp ' not in x.lower() and ' energy ' not in x.lower():
-                        sp_calc_details.remove(i)
+                    if unwanted_name:
+                        x = i[0].replace(unwanted_name[0], "")
+                        if ' sp ' not in x.lower() and ' energy ' not in x.lower():
+                            sp_calc_details.remove(i)
             for i in sp_calc_details:
                 all_sp_calc_details.append(i)
             if gaussian:
@@ -376,9 +446,17 @@ def parse(list_of_filepaths, settings):
             if orca:
                 keyword_sp_calc_details = []
                 for number, section in enumerate(sp_calc_details):
-                    b = sub(r"\n\| *\d+> [^!].*", r"", sp_calc_details[number][0])
-                    b = sub("\n\| *\d+> !", " ", b)
+                    b = sub(r"\n\| *\d+> +[^!]*", r"", sp_calc_details[number][0])
+                    b = sub("!", "", b)
                     b = sub("NOAUTOSTART|PAL\d+|xyzfile", "", b, IGNORECASE)
+
+                    # Clean up ORCA 6's keywords for Martin's DSD functionals
+                    b = sub("REVDSD-PBEP86", "revDSD-PBEP86", b, IGNORECASE)
+                    b = sub("REVDOD-PBEP86", "revDOD-PBEP86", b, IGNORECASE)
+                    b = sub("DSD-PBEP86/2013", "DSD-PBEP86", b, IGNORECASE)
+                    b = sub("DSD-BLYP/2013", "DSD-BLYP", b, IGNORECASE)
+                    b = sub("D-PBEP86-D4/2021", "D-PBEP86 D4", b, IGNORECASE)
+                    b = sub("D-PBEP86/2021", "D-PBEP86", b, IGNORECASE)
                     keyword_sp_calc_details.append(b)
                 sp_calc_details = [keyword_sp_calc_details]
             sp_dispersion = findall(calc_details_dispersion_regex, sp_calc_details[0][0], IGNORECASE)
@@ -405,6 +483,9 @@ def parse(list_of_filepaths, settings):
 
             sp_functional_and_basis_set = sp_functional_and_basis_set.replace("b3lyp", "B3LYP")
             sp_functional_and_basis_set = sp_functional_and_basis_set.replace("wB97XD", "ωB97X-D")
+            sp_functional_and_basis_set = sp_functional_and_basis_set.replace("wb97xd", "ωB97X-D")
+            sp_functional_and_basis_set = sp_functional_and_basis_set.replace("wB97MV", "ωB97M-V")
+            sp_functional_and_basis_set = sp_functional_and_basis_set.replace("wb97mv", "ωB97M-V")
             sp_functional_and_basis_set = sp_functional_and_basis_set.replace("wB", "ωB")
             sp_functional_and_basis_set = sp_functional_and_basis_set.replace("M062X", "M06-2X")
             sp_functional_and_basis_set = sp_functional_and_basis_set.replace("m062x", "M06-2X")
@@ -429,9 +510,10 @@ def parse(list_of_filepaths, settings):
             data_no_EOL = data.replace("\n ", "")
             sp_blocks = []
             if gaussian:
-                end_sections = findall(r"1\\1\\GINC-.*?\\\\@", data_no_EOL, DOTALL)
+                end_sections = findall(r"1\\1\\.*?\\\\@|1\|1\|.*?\|\|@", data_no_EOL, DOTALL)
                 for section in end_sections:
                     section = section.replace("\n ", "")
+                    section = section.replace("|", "\\")
                     if sp_calc_details in section:
                         sp_blocks.append(section)
             elif orca:
@@ -480,7 +562,6 @@ def parse(list_of_filepaths, settings):
                             x = i[0].replace(unwanted_name[0], "")
                             if 'opt' not in x.lower():
                                 opt_calc_details.remove(i)
-
             # Remove Polar=OptRot from parsed opt calc details. Then, if they no longer contain keyword, remove them.
             for i in opt_calc_details:
                 x = i[0].lower().replace("polar=optrot", "")
@@ -508,9 +589,17 @@ def parse(list_of_filepaths, settings):
             if orca:
                 keyword_opt_calc_details = []
                 for number, section in enumerate(opt_calc_details):
-                    b = sub(r"\n\| *\d+> [^!].*", r"", opt_calc_details[number][0])
-                    b = sub("\n\| *\d+> !", " ", b)
+                    b = sub(r"\n\| *\d+> +[^!]*", r"", opt_calc_details[number][0])
+                    b = sub("!", "", b)
                     b = sub("NOAUTOSTART|PAL\d+|xyzfile", "", b, IGNORECASE)
+
+                    # Clean up ORCA 6's keywords for Martin's DSD functionals
+                    b = sub("REVDSD-PBEP86", "revDSD-PBEP86", b, IGNORECASE)
+                    b = sub("REVDOD-PBEP86", "revDOD-PBEP86", b, IGNORECASE)
+                    b = sub("DSD-PBEP86/2013", "DSD-PBEP86", b, IGNORECASE)
+                    b = sub("DSD-BLYP/2013", "DSD-BLYP", b, IGNORECASE)
+                    b = sub("D-PBEP86-D4/2021", "D-PBEP86 D4", b, IGNORECASE)
+                    b = sub("D-PBEP86/2021", "D-PBEP86", b, IGNORECASE)
                     keyword_opt_calc_details.append(b)
                 opt_calc_details = [keyword_opt_calc_details]
             opt_dispersion = findall(calc_details_dispersion_regex, opt_calc_details[0][0], IGNORECASE)
@@ -542,6 +631,9 @@ def parse(list_of_filepaths, settings):
 
             opt_functional_and_basis_set = opt_functional_and_basis_set.replace("b3lyp", "B3LYP")
             opt_functional_and_basis_set = opt_functional_and_basis_set.replace("wB97XD", "ωB97X-D")
+            opt_functional_and_basis_set = opt_functional_and_basis_set.replace("wb97xd", "ωB97X-D")
+            opt_functional_and_basis_set = opt_functional_and_basis_set.replace("wB97MV", "ωB97M-V")
+            opt_functional_and_basis_set = opt_functional_and_basis_set.replace("wb97mv", "ωB97M-V")
             opt_functional_and_basis_set = opt_functional_and_basis_set.replace("wB", "ωB")
             opt_functional_and_basis_set = opt_functional_and_basis_set.replace("M062X", "M06-2X")
             opt_functional_and_basis_set = opt_functional_and_basis_set.replace("m062x", "M06-2X")
@@ -571,9 +663,10 @@ def parse(list_of_filepaths, settings):
         if opt_calc_details and settings["Boltz energy type"] == "Electronic energy":
             data_no_EOL = data.replace("\n ", "")
             if gaussian:
-                end_sections = findall(r"1\\1\\GINC-.*?\\\\@", data_no_EOL, DOTALL)
+                end_sections = findall(r"1\\1\\.*?\\\\@|1\|1\|.*?\|\|@", data_no_EOL, DOTALL)
                 for section in end_sections:
                     section = section.replace("\n ", "")
+                    section = section.replace("|", "\\")
                     if sub("^\s+", "", opt_calc_details) in section:  # Find blocks with optimization results
                         e = findall(sp_energies_regex, section)
                         for i in e:
@@ -597,9 +690,9 @@ def parse(list_of_filepaths, settings):
         for text in freq_section:
             conformer_frequency_groups = findall(frequencies_regex, text)
             conformer_ir_intensity_groups = findall(ir_intensities_regex, text)
-            conformer_frequency_rotatory_strengths_groups = findall(frequency_rotatory_strengths_regex, text)
-            conformer_frequency_dipole_strengths_groups = findall(frequency_dipole_strengths_regex, text)
             if gaussian:
+                conformer_frequency_rotatory_strengths_groups = findall(frequency_rotatory_strengths_regex, text)
+                conformer_frequency_dipole_strengths_groups = findall(frequency_dipole_strengths_regex, text)
                 conformer_frequencies = []
                 conformer_ir_intensities = []
                 conformer_frequency_rotatory_strengths = []
@@ -659,11 +752,31 @@ def parse(list_of_filepaths, settings):
             # if user doesn't abort analysis altogether.
 
             for block in ir_blocks:
-                conformer_ir_intensities = findall(
-                    r"\n *\d+: +\d+\.\d+ +\d+\.\d+ +(\d+\.\d+) +\d+\.\d+ +\(-? ?\d+\.\d+ +-?\d+\.\d+ +-?\d+\.\d+\)",
-                    block
-                )
+                conformer_ir_intensities = findall(orca_ir_blocks_regex, block)
                 ir_intensities.append(conformer_ir_intensities)
+
+            vcd_blocks = findall(orca_vcd_section_regex, data, DOTALL)
+
+            if vcd_blocks:
+
+                conformer_frequency_rotatory_strengths = []
+                for block in vcd_blocks:  # Get frequency rotatory strengths
+                    conformer_frequency_rotatory_strengths = findall(frequency_rotatory_strengths_regex, block)
+                    frequency_rotatory_strengths.append(conformer_frequency_rotatory_strengths)
+
+                conformer_frequency_extinction_coefficients = []
+                for block in ir_blocks:  # Get frequency molar extinction coefficients.
+
+                    conformer_frequency_extinction_coefficients = findall(
+                        frequency_dipole_strengths_regex,
+                        block
+                    )
+                    # Note that while Gaussian computes IR dipole strengths, ORCA 6 actually computes IR extinction
+                    # coefficients, NOT dipole strengths. This difference is accounted for by SpectroIBIS later in
+                    # the final .ir.bil and .docx files.
+
+                    frequency_dipole_strengths.append(conformer_frequency_extinction_coefficients)
+
         # Find TD-DFT calc theory level and solvation.
 
         tddft_calc_details = findall(tddft_calc_details_regex, data, IGNORECASE | DOTALL)
@@ -697,9 +810,17 @@ def parse(list_of_filepaths, settings):
             if orca:
                 keyword_tddft_calc_details = []
                 for number, section in enumerate(tddft_calc_details):
-                    b = sub(r"\n\| *\d+> [^!].*", r"", tddft_calc_details[number][0])
-                    b = sub("\n\| *\d+> !", " ", b)
+                    b = sub(r"\n\| *\d+> +[^!]*", r"", tddft_calc_details[number][0])
+                    b = sub("!", "", b)
                     b = sub("NOAUTOSTART|PAL\d+|xyzfile", "", b, IGNORECASE)
+
+                    # Clean up ORCA 6's keywords for Martin's DSD functionals
+                    b = sub("REVDSD-PBEP86", "revDSD-PBEP86", b, IGNORECASE)
+                    b = sub("REVDOD-PBEP86", "revDOD-PBEP86", b, IGNORECASE)
+                    b = sub("DSD-PBEP86/2013", "DSD-PBEP86", b, IGNORECASE)
+                    b = sub("DSD-BLYP/2013", "DSD-BLYP", b, IGNORECASE)
+                    b = sub("D-PBEP86-D4/2021", "D-PBEP86 D4", b, IGNORECASE)
+                    b = sub("D-PBEP86/2021", "D-PBEP86", b, IGNORECASE)
                     keyword_tddft_calc_details.append(b)
                 tddft_calc_details = [keyword_tddft_calc_details]
             tddft_dispersion = findall(calc_details_dispersion_regex, tddft_calc_details[0][0], IGNORECASE)
@@ -727,6 +848,9 @@ def parse(list_of_filepaths, settings):
 
             tddft_functional_and_basis_set = tddft_functional_and_basis_set.replace("b3lyp", "B3LYP")
             tddft_functional_and_basis_set = tddft_functional_and_basis_set.replace("wB97XD", "ωB97X-D")
+            tddft_functional_and_basis_set = tddft_functional_and_basis_set.replace("wb97xd", "ωB97X-D")
+            tddft_functional_and_basis_set = tddft_functional_and_basis_set.replace("wB97MV", "ωB97M-V")
+            tddft_functional_and_basis_set = tddft_functional_and_basis_set.replace("wb97mv", "ωB97M-V")
             tddft_functional_and_basis_set = tddft_functional_and_basis_set.replace("wB", "ωB")
             tddft_functional_and_basis_set = tddft_functional_and_basis_set.replace("M062X", "M06-2X")
             tddft_functional_and_basis_set = tddft_functional_and_basis_set.replace("m062x", "M06-2X")
@@ -778,9 +902,17 @@ def parse(list_of_filepaths, settings):
             if orca:
                 keyword_nmr_calc_details = []
                 for number, section in enumerate(nmr_calc_details):
-                    b = sub(r"\n\| *\d+> [^!].*", r"", nmr_calc_details[number][0])
-                    b = sub("\n\| *\d+> !", " ", b)
+                    b = sub(r"\n\| *\d+> +[^!]*", r"", nmr_calc_details[number][0])
+                    b = sub("!", "", b)
                     b = sub("NOAUTOSTART|PAL\d+|xyzfile", "", b, IGNORECASE)
+
+                    # Clean up ORCA 6's keywords for Martin's DSD functionals
+                    b = sub("REVDSD-PBEP86", "revDSD-PBEP86", b, IGNORECASE)
+                    b = sub("REVDOD-PBEP86", "revDOD-PBEP86", b, IGNORECASE)
+                    b = sub("DSD-PBEP86/2013", "DSD-PBEP86", b, IGNORECASE)
+                    b = sub("DSD-BLYP/2013", "DSD-BLYP", b, IGNORECASE)
+                    b = sub("D-PBEP86-D4/2021", "D-PBEP86 D4", b, IGNORECASE)
+                    b = sub("D-PBEP86/2021", "D-PBEP86", b, IGNORECASE)
                     keyword_nmr_calc_details.append(b)
                 nmr_calc_details = [keyword_nmr_calc_details]
             nmr_dispersion = findall(calc_details_dispersion_regex, nmr_calc_details[0][0], IGNORECASE)
@@ -803,6 +935,9 @@ def parse(list_of_filepaths, settings):
 
             nmr_functional_and_basis_set = nmr_functional_and_basis_set.replace("b3lyp", "B3LYP")
             nmr_functional_and_basis_set = nmr_functional_and_basis_set.replace("wB97XD", "ωB97X-D")
+            nmr_functional_and_basis_set = nmr_functional_and_basis_set.replace("wb97xd", "ωB97X-D")
+            nmr_functional_and_basis_set = nmr_functional_and_basis_set.replace("wB97MV", "ωB97M-V")
+            nmr_functional_and_basis_set = nmr_functional_and_basis_set.replace("wb97mv", "ωB97M-V")
             nmr_functional_and_basis_set = nmr_functional_and_basis_set.replace("wB", "ωB")
             nmr_functional_and_basis_set = nmr_functional_and_basis_set.replace("M062X", "M06-2X")
             nmr_functional_and_basis_set = nmr_functional_and_basis_set.replace("m062x", "M06-2X")
@@ -862,6 +997,9 @@ def parse(list_of_filepaths, settings):
 
                 or_functional_and_basis_set = or_functional_and_basis_set.replace("b3lyp", "B3LYP")
                 or_functional_and_basis_set = or_functional_and_basis_set.replace("wB97XD", "ωB97X-D")
+                or_functional_and_basis_set = or_functional_and_basis_set.replace("wb97xd", "ωB97X-D")
+                or_functional_and_basis_set = or_functional_and_basis_set.replace("wB97MV", "ωB97M-V")
+                or_functional_and_basis_set = or_functional_and_basis_set.replace("wb97mv", "ωB97M-V")
                 or_functional_and_basis_set = or_functional_and_basis_set.replace("wB", "ωB")
                 or_functional_and_basis_set = or_functional_and_basis_set.replace("M062X", "M06-2X")
                 or_functional_and_basis_set = or_functional_and_basis_set.replace("m062x", "M06-2X")
@@ -961,7 +1099,7 @@ def parse(list_of_filepaths, settings):
         # If required, extract conformer suffixes from .chk filenames in Gaussian output files.
 
         if gaussian and settings["Mode"] == "Create input files" and conformer_suffix is None:
-            a = findall(r"%chk=.*?(conf-\d+|conformer-\d+|M\d\d\d\d)\.chk", data)
+            a = findall(r"%chk=.*?(conf-\d+|conformer-\d+|M\d\d\d\d)\.chk", data, IGNORECASE)
             for suffix in a:
                 if suffix not in chk_conf_suffixes:
                     chk_conf_suffixes.append(suffix)
@@ -1050,6 +1188,7 @@ def parse(list_of_filepaths, settings):
         "conf-\d+\.log|conformer-\d+\.log|\.log|M\d\d\d\d\.log|conf-\d+\.out|conformer-\d+\.out|M\d\d\d\d\.out|\.out",
         "",
         results_directory,
+        IGNORECASE
     )
     results_directory = sub("-$|_$| $", "", results_directory)
 
@@ -1222,6 +1361,31 @@ def parse(list_of_filepaths, settings):
                     + str(len(shielding_tensors))
                     + " conformers. Check\nthat all .out/.log files were selected, and all calculations are complete. "
             )
+        if (
+                len(element_list[0])
+                > len(shielding_tensors[0])
+        ):
+            if calc_software == "orca" and findall(
+                    "nuclei = ", data, IGNORECASE
+            ):  # Checks for ORCA 6 input file keyword to request NMR calculation for only a subset of nuclei
+                parser_error_check = "Error detected"
+                error_message = (
+                        "NMR shielding tensors were extracted for only "
+                        + str(len(shielding_tensors[0]))
+                        + " / "
+                        + str(len(element_list[0]))
+                        + " nuclei.\nNMR calculations for subsets of nuclei are not yet supported by SpectroIBIS.\n"
+                          "Please recalculate shielding tensors for all nuclei of every conformer."
+                )
+            else:
+                parser_error_check = "Error detected"
+                error_message = (
+                        "NMR shielding tensors were extracted for only "
+                        + str(len(shielding_tensors[0]))
+                        + " / "
+                        + str(len(element_list[0]))
+                        + " nuclei.\nCheck input file(s) contain NMR shielding tensors for all nuclei."
+                )
     if wavelength_list:
         if (
                 len(x_cartesian_coords_list)
@@ -1475,6 +1639,7 @@ def parse(list_of_filepaths, settings):
         ir_intensities,
         chk_conf_suffixes,
         list_of_file_contents,
+        calc_software,
     )
 
 
@@ -1507,6 +1672,7 @@ def xyz_sdf_parser(list_of_filepaths, settings):
         "conf-\d+\.log|conformer-\d+\.log|\.log|M\d\d\d\d\.log|conf-\d+\.out|conformer-\d+\.out|M\d\d\d\d\.out|\.out",
         "",
         results_directory,
+        IGNORECASE
     )
 
     # Open xyz/sdf file to extract data
