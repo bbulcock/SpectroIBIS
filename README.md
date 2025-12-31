@@ -1,6 +1,8 @@
 # SpectroIBIS
 **SpectroIBIS** is a user-friendly desktop app designed to easily automate tedious tasks in the analysis of multi-conformer quantum chemical spectroscopic calculations, such as predictions of ECD spectra or NMR chemical shifts.
 
+For work using SpectroIBIS, please cite: [_J. Nat. Prod._ **2025**, _88_ (2), 495–501](https://pubs.acs.org/doi/10.1021/acs.jnatprod.4c01321).
+
 ## What does it do?
 <img src="images/main_pipeline.png" width="650">
 
