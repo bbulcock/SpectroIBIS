@@ -4,9 +4,9 @@
 
 
 from math import exp
-from rdkit.Chem import MolFromXYZBlock, rdMolTransforms  # Version 2022.9.4
-import numpy as np  # Version 1.24.1
-from scipy.optimize import linear_sum_assignment  # Version 1.14.1
+from rdkit.Chem import MolFromXYZBlock, rdMolTransforms  # Version 2025.9.3
+import numpy as np  # Version 2.2.6
+from scipy.optimize import linear_sum_assignment  # Version 1.15.3
 from scipy.spatial import distance as scipy_distance
 
 
@@ -50,6 +50,7 @@ def analyse(parsed_data, settings):
     or_dispersion = parsed_data[35]
     ir_intensities_list = parsed_data[36]
     chk_conf_suffixes = parsed_data[37]
+    calc_software = parsed_data[39]
 
     energy_threshold = float(settings["Energy cutoff (kcal/mol)"])
     mad_threshold = float(settings["MAD cutoff (A)"])
@@ -778,4 +779,5 @@ def analyse(parsed_data, settings):
         ordered_ir_intensities_list,
         number_imag_freq_confs_removed,
         chk_conf_suffixes,
+        calc_software,
     )
