@@ -4,7 +4,7 @@
 
 from csv import writer as csv_writer, QUOTE_ALL
 from re import search, findall, sub
-from docx import Document  # Version 0.8.11
+from docx import Document  # Version 1.2.0
 from docx.shared import Pt
 from docx.enum.text import WD_PARAGRAPH_ALIGNMENT
 from docx.enum.table import WD_CELL_VERTICAL_ALIGNMENT, WD_TABLE_ALIGNMENT
@@ -55,6 +55,7 @@ def ir_csv_writer(analysed_data, settings):
     boltz_frequencies = analysed_data[29]
     ordered_frequencies = analysed_data[30]
     boltz_ir_intensities = analysed_data[51]
+    
     ordered_ir_intensities = analysed_data[52]
     ordered_boltz_weights = analysed_data[2]
     results_name_and_directory = analysed_data[27]
@@ -210,12 +211,16 @@ def ir_bil_writer(analysed_data):
     boltz_frequencies = analysed_data[29]
     boltz_frequency_dipole_strengths = analysed_data[40]
     results_name_and_directory = analysed_data[27]
+    calc_software = analysed_data[55]
     ir_file_name = results_name_and_directory + " Boltzmann-Averaged IR Data.ir.bil"
     # Write .ir.bil file
 
     try:
         with open(ir_file_name, "w") as file:
-            file.write("SpecDis bil-file (wavenumber (cm**-1)           dipole strength (10**-40 esu**2-cm**2))")
+            if calc_software == "gaussian":
+                file.write("SpecDis bil-file (wavenumber (cm**-1)           dipole strength (10**-40 esu**2-cm**2))")
+            elif calc_software == "orca":
+                file.write("SpecDis bil-file (wavenumber (cm**-1)           molar extinction coefficient (L mol**-1 cm**-1)")
             for frequency in range((len(boltz_frequencies) - 1), -1, -1):
                 file.write(
                     "\n" + str(boltz_frequencies[frequency]) + "\t" + str(boltz_frequency_dipole_strengths[frequency])
@@ -1222,7 +1227,6 @@ def docx_writer(analysed_data, settings):
                         paragraph = row[r].paragraphs[0]
                         paragraph.alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
                         # If we have run out of conformers, fill cell with a single space and no bottom border.
-                        print('conformer number is ' + str(conformer_number) + '.  2nd bit is ' + str(len(table_wavelength_list[four_conformers]) - 1))
                         if conformer_number > (len(table_wavelength_list[four_conformers]) - 1):
                             run = paragraph.add_run(" ")
                         else:
@@ -1531,6 +1535,7 @@ def docx_writer(analysed_data, settings):
         doc_text += "+NMR"
     # Create table for VCD data, if present
 
+    calc_software = analysed_data[55]
     if ordered_frequency_rotatory_strengths_list:
         if settings["Energies and coordinates table"] is False:
             doc = Document()
@@ -1551,14 +1556,26 @@ def docx_writer(analysed_data, settings):
         else:
             solvation_text = " in " + opt_freq_solvent
         table_title = doc.add_heading("", level=2)
-        table_title.add_run(
-            "Calculated vibrational frequencies, dipole and rotational strengths for geometry-optimized conformers of "
-            + results_name
-            + " at "
-            + opt_freq_functional_and_basis_set
-            + solvation_text
-            + "\n"
-        )
+        if calc_software == "gaussian":
+            table_title.add_run(
+                "Calculated vibrational frequencies, dipole and rotational strengths for geometry-optimized "
+                "conformers of "
+                + results_name
+                + " at "
+                + opt_freq_functional_and_basis_set
+                + solvation_text
+                + "\n"
+            )
+        elif calc_software == "orca":
+            table_title.add_run(
+                "Calculated vibrational frequencies, molar extinction coefficients and rotational strengths for "
+                "geometry-optimized conformers of "
+                + results_name
+                + " at "
+                + opt_freq_functional_and_basis_set
+                + solvation_text
+                + "\n"
+            )
         first_column_heading = "Atom"
         first_column = 1
 
@@ -1641,7 +1658,10 @@ def docx_writer(analysed_data, settings):
                 if conformer_number > (len(table_energies[four_conformers]) - 1):
                     run = paragraph.add_run(" ")
                 else:
-                    run = paragraph.add_run("D")
+                    if calc_software == "gaussian":
+                        run = paragraph.add_run("D")
+                    elif calc_software == "orca":
+                        run = paragraph.add_run("ε")
                     run.italic = True
                     set_cell_border(row[p], bottom={"sz": 4, "val": "single", "color": "auto", "space": "0"})
                 run.font.size = Pt(11)
@@ -1699,11 +1719,15 @@ def docx_writer(analysed_data, settings):
                     if conformer_number > (len(table_energies[four_conformers]) - 1):
                         run = paragraph.add_run(" ")
                     else:
-                        run = paragraph.add_run(
-                            str(
-                                f"{round(float(table_frequency_dipole_strengths[four_conformers][conformer_number][mode]), 1):.1f}"
+                        if calc_software == "gaussian":
+                            run = paragraph.add_run(
+                                str(f"{round(float(table_frequency_dipole_strengths[four_conformers][conformer_number][mode]), 1):.1f}")
                             )
-                        )
+                        elif calc_software == "orca":
+                            run = paragraph.add_run(
+                                str(f"{round(float(table_frequency_dipole_strengths[four_conformers][conformer_number][mode]), 4):.4f}")
+                            )
+
                         if mode == len(ordered_frequencies[0]) - 1:
                             set_cell_border(row[r], bottom={"sz": 4, "val": "single", "color": "auto", "space": "0"})
                     run.font.size = Pt(9)
@@ -1727,9 +1751,14 @@ def docx_writer(analysed_data, settings):
                             set_cell_border(row[r], bottom={"sz": 4, "val": "single", "color": "auto", "space": "0"})
                     run.font.size = Pt(9)
                     row[r].vertical_alignment = WD_CELL_VERTICAL_ALIGNMENT.CENTER
-        doc.add_paragraph(
-            "ν = frequency (cm⁻¹), 𝐷 = dipole strength (× 10⁻⁴⁰ esu² cm²), 𝑅 = rotational strength (× 10⁻⁴⁴ esu² cm²)"
-        )
+        if calc_software == "gaussian":
+            doc.add_paragraph(
+                "ν = frequency (cm⁻¹), 𝐷 = dipole strength (× 10⁻⁴⁰ esu² cm²), 𝑅 = rotational strength (× 10⁻⁴⁴ esu² cm²)"
+            )
+        elif calc_software == "orca":
+            doc.add_paragraph(
+                "ν = frequency (cm⁻¹), 𝜀 = molar extinction coefficient (L mol⁻¹ cm⁻¹), 𝑅 = rotational strength (× 10⁻⁴⁴ esu² cm²)"
+            )
         doc_text += "+VCD"
     # Create table for optrot data, if present
 
