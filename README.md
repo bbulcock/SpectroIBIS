@@ -17,7 +17,7 @@
 + Simple drag-and-drop user interface, no programming experience required
 
 ## Download
-Click here to download the latest version for Windows: [SpectroIBIS v1.0.1 (ZIP)](https://github.com/bbulcock/SpectroIBIS/releases/download/v1.0.1/SpectroIBIS.zip)
+Click here to download the latest version for Windows: [SpectroIBIS v1.1.0 (ZIP)](https://github.com/bbulcock/SpectroIBIS/releases/download/v1.1.0/SpectroIBIS.zip)
 
 ## Installation
 Unzip the above ZIP file, then double-click on ‘SpectroIBIS.exe’ to launch.
